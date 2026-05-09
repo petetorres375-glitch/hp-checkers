@@ -36,6 +36,7 @@ CX = WIDTH // 2
 BX = CX - BW // 2
 
 BACK_RECT = (20, 110, 120, 40)
+QUIT_RECT = (10, 380, 180, 36)
 
 
 def draw_bg(surface):
@@ -142,7 +143,8 @@ async def main():
                             phase = "PLAY"
 
                 elif phase == "PLAY" and game is not None:
-                    if bx0 <= mx <= bx0 + bw0 and by0 <= my <= by0 + bh0:
+                    qx, qy, qw, qh = QUIT_RECT
+                    if qx <= mx <= qx + qw and qy <= my <= qy + qh:
                         phase = "MODE"
                         game_mode = None
                         difficulty = None
@@ -195,7 +197,7 @@ async def main():
                         await game.ai_move(new_board)
 
             game.update()
-            draw_button(WIN, "Quit", *BACK_RECT)
+            draw_button(WIN, "Quit", *QUIT_RECT)
 
             winner = game.board.winner()
             if winner is not None:

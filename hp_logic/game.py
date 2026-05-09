@@ -56,7 +56,7 @@ class Game:
         start_x, start_y = piece.x, piece.y
         end_x = SQUARE_SIZE * end_col + SQUARE_SIZE // 2 + SIDEBAR_WIDTH
         end_y = SQUARE_SIZE * end_row + SQUARE_SIZE // 2
-        steps = 18
+        steps = 12
         for i in range(1, steps + 1):
             t = i / steps
             piece.x = int(start_x + (end_x - start_x) * t)
@@ -65,7 +65,7 @@ class Game:
             self.board.draw(self.win)
             self.draw_captured_sidebar()
             pygame.display.update()
-            await asyncio.sleep(0.018)
+            await asyncio.sleep(0.012)
 
     async def _move(self, row, col):
         piece = self.board.get_piece(row, col)

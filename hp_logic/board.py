@@ -136,11 +136,16 @@ class Board:
 
         return moves
 
-    def _get_man_captures(self, piece, row, col, captured, visited):
+    def _get_man_captures(self, piece, row, col, captured, visited, can_go_back=False):
         moves = {}
         found_capture = False
 
-        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        if can_go_back:
+            directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        elif piece.color == self.p_color:
+            directions = [(-1, -1), (-1, 1)]
+        else:
+            directions = [(1, -1), (1, 1)]
 
         for dr, dc in directions:
             mid_r = row + dr
@@ -168,7 +173,7 @@ class Board:
                 self.board[row][col] = 0
                 self.board[land_r][land_c] = temp_piece
 
-                deeper = self._get_man_captures(piece, land_r, land_c, new_captured, new_visited)
+                deeper = self._get_man_captures(piece, land_r, land_c, new_captured, new_visited, can_go_back=True)
 
                 self.board[row][col] = temp_piece
                 self.board[land_r][land_c] = 0
