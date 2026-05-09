@@ -253,7 +253,13 @@ async def main():
                 pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2 + dx * 14, cy2), 3)
                 pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2, cy2 + dy * 14), 3)
             cursor = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
-            name_surf = FONT_BTN.render(name_input + cursor, True, GOLD)
+            if name_input:
+                display_text = name_input + cursor
+                text_color   = GOLD
+            else:
+                display_text = "Type your name..." if cursor else ""
+                text_color   = (80, 64, 28)
+            name_surf = FONT_BTN.render(display_text, True, text_color)
             WIN.blit(name_surf, (BX + BW // 2 - name_surf.get_width() // 2,
                                   290 + BH // 2 - name_surf.get_height() // 2))
             btn_label = "Next" if game_mode == "PVP" and naming_step == 1 else "Play"

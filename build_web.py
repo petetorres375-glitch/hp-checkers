@@ -219,9 +219,13 @@ def patch(html: str) -> str:
         ("<title>hp_checkers</title>",
          "<title>Harry Potter House Cup Checkers</title>"),
 
-        # Body background
+        # Body background (CSS)
         ("background-color:powderblue;",
          "background-color: #050510;"),
+
+        # Body background (Python runtime override)
+        ('platform.document.body.style.background = "#7f7f7f"',
+         'platform.document.body.style.background = "#050510"'),
 
         # show_infobox — strip centering logic
         (
