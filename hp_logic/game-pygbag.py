@@ -14,8 +14,12 @@ class Game:
         self.o_h = o_h
         self._snd_move = self._load_sound("assets/wand_flick.ogg")
         self._snd_capture = self._load_sound("assets/expelliarmus.ogg")
-        self._font_name = pygame.font.SysFont("comicsans", 22, bold=True)
-        self._font_score = pygame.font.SysFont("comicsans", 18)
+        try:
+            self._font_name  = pygame.font.Font("assets/Cinzel-Bold.ttf", 20)
+            self._font_score = pygame.font.Font("assets/Cinzel-Regular.ttf", 16)
+        except Exception:
+            self._font_name  = pygame.font.SysFont("serif", 20, bold=True)
+            self._font_score = pygame.font.SysFont("serif", 16)
         self._sidebar_imgs = {
             color: pygame.transform.scale(img, (26, 26))
             for color, img in COLOR_IMAGE.items()

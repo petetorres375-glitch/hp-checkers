@@ -163,11 +163,22 @@ config = {
 
 function show_infobox() {
     infobox.style.display = "block";
+
+    // Measure box
+    const w = infobox.offsetWidth;
+    const h = infobox.offsetHeight;
+
+    // Center in viewport
+    const left = (window.innerWidth - w) / 2;
+    const top = (window.innerHeight - h) / 2;
+
+    infobox.style.left = left + "px";
+    infobox.style.top = top + "px";
 }
 
 </script>
 
-    <title>Harry Potter House Cup Checkers</title>
+    <title>hp_checkers</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -194,82 +205,13 @@ function show_infobox() {
         }
 
         #infobox {
-            position: fixed;
-            bottom: 48px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75);
-            color: #c8a84b;
+            position: fixed; /* center relative to viewport */
+            background: green;
+            color: blue;
             font-weight: bold;
-            font-family: Georgia, serif;
-            font-size: 0.95em;
-            letter-spacing: 1px;
-            padding: 10px 28px;
-            border: 1px solid rgba(200, 168, 75, 0.4);
-            border-radius: 4px;
-            white-space: nowrap;
-            z-index: 1000001;
-        }
-
-        #loading-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #0a0a1a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000000;
-        }
-
-        .lo-title {
-            font-family: Georgia, serif;
-            font-size: 2.4em;
-            font-weight: bold;
-            color: #c8a84b;
-            letter-spacing: 4px;
-            text-shadow: 0 0 24px rgba(200, 168, 75, 0.35);
-            margin-bottom: 8px;
-        }
-
-        .lo-subtitle {
-            font-family: Georgia, serif;
-            font-size: 0.85em;
-            color: #555;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            margin-bottom: 40px;
-        }
-
-        .lo-houses {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 48px;
-        }
-
-        .lo-bar { width: 70px; height: 6px; border-radius: 3px; }
-        .lo-gryff { background: #7a0000; }
-        .lo-slyth { background: #1a472a; }
-        .lo-huff  { background: #ecb939; }
-        .lo-rave  { background: #222f5b; }
-
-        @keyframes lo-spin { to { transform: rotate(360deg); } }
-
-        .lo-spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid rgba(200, 168, 75, 0.15);
-            border-top-color: #c8a84b;
-            border-radius: 50%;
-            animation: lo-spin 1s linear infinite;
-            margin-bottom: 32px;
-        }
-
-        .lo-note {
-            font-family: Georgia, serif;
-            font-size: 0.78em;
-            color: #3a3a3a;
-            letter-spacing: 1px;
+            padding: 12px 24px;
+ /*           display: none; */
+            z-index: 999999;
         }
         div.emscripten { text-align: center; }
         div.emscripten_border { border: 1px solid black; }
@@ -298,7 +240,7 @@ function show_infobox() {
             font-family: arial;
             margin: 0;
             padding: none;
-            background-color: #0a0a1a;
+            background-color:powderblue;
         }
 
         .topright{
@@ -357,19 +299,6 @@ function show_infobox() {
     </div>
 
 
-
-    <div id="loading-overlay">
-        <div class="lo-title">House Cup Checkers</div>
-        <div class="lo-subtitle">Harry Potter Edition</div>
-        <div class="lo-houses">
-            <div class="lo-bar lo-gryff"></div>
-            <div class="lo-bar lo-slyth"></div>
-            <div class="lo-bar lo-huff"></div>
-            <div class="lo-bar lo-rave"></div>
-        </div>
-        <div class="lo-spinner"></div>
-        <div class="lo-note">First visit may take up to 30 seconds</div>
-    </div>
 
     <canvas class="emscripten" id="canvas"
 width="1px"
@@ -503,21 +432,7 @@ frameborder="1"
         window.frames["iframe"].location = url;
     }
 
-    window.addEventListener('DOMContentLoaded', function () {
-        var overlay = document.getElementById('loading-overlay');
-        var infobox = document.getElementById('infobox');
-        if (overlay && infobox) {
-            new MutationObserver(function (mutations) {
-                mutations.forEach(function (m) {
-                    if (m.attributeName === 'style' && infobox.style.display === 'none') {
-                        overlay.style.display = 'none';
-                    }
-                });
-            }).observe(infobox, { attributes: true });
-        }
-    });
-
-</script>
+    </script>
 
 </body>
 </html>
