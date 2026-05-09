@@ -1,3 +1,4 @@
+import asyncio
 import os
 import pygame
 from .constants import (
@@ -51,7 +52,7 @@ class Game:
         self.draw_captured_sidebar()
         pygame.display.update()
 
-    def _animate_piece(self, piece, end_row, end_col):
+    async def _animate_piece(self, piece, end_row, end_col):
         start_x, start_y = piece.x, piece.y
         end_x = SQUARE_SIZE * end_col + SQUARE_SIZE // 2 + SIDEBAR_WIDTH
         end_y = SQUARE_SIZE * end_row + SQUARE_SIZE // 2
@@ -64,14 +65,14 @@ class Game:
             self.board.draw(self.win)
             self.draw_captured_sidebar()
             pygame.display.update()
-            pygame.time.delay(18)
+            await asyncio.sleep(0.018)
 
-    def _move(self, row, col):
+    async def _move(self, row, col):
         piece = self.board.get_piece(row, col)
 
         if self.selected and piece == 0 and (row, col) in self.valid_moves:
             was_king = self.selected.king
-            self._animate_piece(self.selected, row, col)
+            await self._animate_piece(self.selected, row, col)
             self.board.move(self.selected, row, col)
             skipped = self.valid_moves[(row, col)]
 
@@ -147,12 +148,12 @@ class Game:
         self.valid_moves = {}
         self.turn = self.o_h if self.turn == self.p_h else self.p_h
 
-    def select(self, row, col):
+    async def select(self, row, col):
         if self.selected:
-            result = self._move(row, col)
+            result = await self._move(row, col)
             if not result:
                 self.selected = None
-                self.select(row, col)
+                await self.select(row, col)
 
         piece = self.board.get_piece(row, col)
         if piece != 0 and piece.color == self.turn:
@@ -168,7 +169,7 @@ class Game:
 
         return False
 
-    def ai_move(self, board):
+    async def ai_move(self, board):
         moved_from = None
         moved_to = None
         for row in range(ROWS):
@@ -179,11 +180,13 @@ class Game:
                     moved_from = (row, col)
                 elif old == 0 and new != 0 and new.color == self.o_h:
                     moved_to = (row, col)
+                elif old != 0 and new == 0 and old.color == self.p_h:
+                    self.captured_by_o.append(old.color)
 
         if moved_from and moved_to:
             piece = self.board.board[moved_from[0]][moved_from[1]]
             if piece != 0:
-                self._animate_piece(piece, moved_to[0], moved_to[1])
+                await self._animate_piece(piece, moved_to[0], moved_to[1])
 
         self.board = board
         self.change_turn()

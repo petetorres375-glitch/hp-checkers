@@ -152,7 +152,7 @@ async def main():
                         col = (mx2 - SIDEBAR_WIDTH) // SQUARE_SIZE
                         row = my2 // SQUARE_SIZE
                         if 0 <= row < 8 and 0 <= col < 8:
-                            game.select(row, col)
+                            await game.select(row, col)
 
         if phase == "MODE":
             draw_bg(WIN)
@@ -187,12 +187,12 @@ async def main():
 
         elif phase == "PLAY" and game is not None:
             if game_mode == "PVC" and game.turn == game.o_h:
-                pygame.time.delay(250)
+                await asyncio.sleep(0.25)
                 result = minimax(game.board, difficulty, True)
                 if result is not None:
                     value, new_board = result
                     if new_board is not None:
-                        game.ai_move(new_board)
+                        await game.ai_move(new_board)
 
             game.update()
             draw_button(WIN, "Quit", *BACK_RECT)
