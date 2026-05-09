@@ -313,6 +313,9 @@ def main():
 
     print("Copying build/web → docs/...")
     shutil.copytree(ROOT / "build" / "web", ROOT / "docs", dirs_exist_ok=True)
+    for ext in ("*.apk", "*.tar.gz"):
+        for f in (ROOT / "docs").glob(ext):
+            f.unlink()
 
     print("Patching docs/index.html...")
     index = ROOT / "docs" / "index.html"

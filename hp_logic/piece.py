@@ -25,16 +25,16 @@ class Piece:
     def draw(self, win):
         radius = SQUARE_SIZE // 2 - self.PADDING
 
-        if self.king:
-            pygame.draw.circle(win, PATRONUS_BLUE, (self.x, self.y), radius + 8)
-            pygame.draw.circle(win, (255, 215, 0), (self.x, self.y), radius + 4)
-
         pygame.draw.circle(win, WHITE, (self.x, self.y), radius + self.OUTLINE)
         pygame.draw.circle(win, self.color, (self.x, self.y), radius)
 
         image = COLOR_IMAGE.get(self.color)
         if image:
             win.blit(image, image.get_rect(center=(self.x, self.y)))
+
+        if self.king:
+            pygame.draw.circle(win, (255, 215, 0), (self.x, self.y), radius + 10, 4)
+            pygame.draw.circle(win, PATRONUS_BLUE, (self.x, self.y), radius + 5, 3)
 
     def move(self, row, col):
         self.row = row

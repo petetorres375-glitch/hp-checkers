@@ -6,3 +6,5 @@ build/
 dist/
 *.zip
 .env
+docs/*.apk
+docs/*.tar.gz
