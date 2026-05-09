@@ -35,7 +35,7 @@ BW, BH = 370, 68
 CX = WIDTH // 2
 BX = CX - BW // 2
 
-BACK_RECT = (50, HEIGHT - 110, 140, 46)
+BACK_RECT = (20, 110, 120, 40)
 
 
 def draw_bg(surface):
