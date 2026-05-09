@@ -43,7 +43,7 @@ def draw_bg(surface):
     for sx, sy, alpha in STARS:
         b = int(alpha * 220)
         pygame.draw.circle(surface, (b, b, b), (sx, sy), 1)
-    pygame.draw.line(surface, GOLD, (60, 95), (WIDTH - 60, 95), 1)
+    pygame.draw.line(surface, GOLD, (60, 106), (WIDTH - 60, 106), 1)
     pygame.draw.line(surface, GOLD, (60, HEIGHT - 75), (WIDTH - 60, HEIGHT - 75), 1)
 
 
