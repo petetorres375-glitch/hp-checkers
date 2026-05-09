@@ -17,6 +17,8 @@ GOOGLE_FONTS = """\
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">"""
 
 CUSTOM_CSS = """\
+        html { background-color: #050510; }
+
         #status { display: none; }
         #progress { display: none; }
 

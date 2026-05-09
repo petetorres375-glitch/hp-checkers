@@ -86,12 +86,39 @@ async def main():
     game_mode   = None
     difficulty  = None
     game        = None
+    p_house     = None
+    o_house     = None
+    p_name      = ""
+    o_name      = ""
+    name_input  = ""
+    naming_step = 1
 
     while run:
         clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
+            if event.type == pygame.KEYDOWN and phase == "NAME":
+                if event.key == pygame.K_BACKSPACE:
+                    name_input = name_input[:-1]
+                elif event.key == pygame.K_RETURN:
+                    confirmed = name_input.strip() or ("Player 1" if naming_step == 1 else "Player 2")
+                    if naming_step == 1:
+                        p_name = confirmed
+                        if game_mode == "PVP":
+                            name_input = ""
+                            naming_step = 2
+                        else:
+                            o_name = "AI"
+                            game = Game(WIN, p_house, o_house, p_name, o_name)
+                            phase = "PLAY"
+                    else:
+                        o_name = confirmed
+                        game = Game(WIN, p_house, o_house, p_name, o_name)
+                        phase = "PLAY"
+                elif event.unicode and len(name_input) < 14:
+                    name_input += event.unicode
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
@@ -139,7 +166,32 @@ async def main():
                         if p_h is not None:
                             p_house = p_h
                             o_house = SLYTHERIN_GREEN if p_h != SLYTHERIN_GREEN else GRYFFINDOR_RED
-                            game = Game(WIN, p_house, o_house)
+                            name_input = ""
+                            naming_step = 1
+                            phase = "NAME"
+
+                elif phase == "NAME":
+                    if bx0 <= mx <= bx0 + bw0 and by0 <= my <= by0 + bh0:
+                        if naming_step == 2:
+                            naming_step = 1
+                            name_input = p_name
+                        else:
+                            phase = "HOUSE"
+                            name_input = ""
+                    elif BX <= mx <= BX + BW and 400 <= my <= 400 + BH:
+                        confirmed = name_input.strip() or ("Player 1" if naming_step == 1 else "Player 2")
+                        if naming_step == 1:
+                            p_name = confirmed
+                            if game_mode == "PVP":
+                                name_input = ""
+                                naming_step = 2
+                            else:
+                                o_name = "AI"
+                                game = Game(WIN, p_house, o_house, p_name, o_name)
+                                phase = "PLAY"
+                        else:
+                            o_name = confirmed
+                            game = Game(WIN, p_house, o_house, p_name, o_name)
                             phase = "PLAY"
 
                 elif phase == "PLAY" and game is not None:
@@ -187,6 +239,27 @@ async def main():
                             bg=color, text_color=txt_c, img=COLOR_IMAGE.get(color))
             draw_button(WIN, "Back", *BACK_RECT)
 
+        elif phase == "NAME":
+            draw_bg(WIN)
+            draw_title(WIN)
+            if game_mode == "PVP" and naming_step == 2:
+                draw_label(WIN, "Player 2 — Enter Your Name", 200)
+            else:
+                draw_label(WIN, "Enter Your Name", 200)
+            pygame.draw.rect(WIN, BTN_BG, (BX, 290, BW, BH))
+            pygame.draw.rect(WIN, GOLD, (BX, 290, BW, BH), 2)
+            for cx2, cy2, dx, dy in [(BX, 290, 1, 1), (BX+BW, 290, -1, 1),
+                                      (BX, 290+BH, 1, -1), (BX+BW, 290+BH, -1, -1)]:
+                pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2 + dx * 14, cy2), 3)
+                pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2, cy2 + dy * 14), 3)
+            cursor = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
+            name_surf = FONT_BTN.render(name_input + cursor, True, GOLD)
+            WIN.blit(name_surf, (BX + BW // 2 - name_surf.get_width() // 2,
+                                  290 + BH // 2 - name_surf.get_height() // 2))
+            btn_label = "Next" if game_mode == "PVP" and naming_step == 1 else "Play"
+            draw_button(WIN, btn_label, BX, 400, BW, BH)
+            draw_button(WIN, "Back", *BACK_RECT)
+
         elif phase == "PLAY" and game is not None:
             if game_mode == "PVC" and game.turn == game.o_h:
                 await asyncio.sleep(0.25)
@@ -210,16 +283,13 @@ async def main():
                                           (335, 475, 1, -1), (865, 475, -1, -1)]:
                     pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2 + dx * 18, cy2), 3)
                     pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2, cy2 + dy * 18), 3)
-                if winner == game.p_h:
-                    text = "Player 1 Wins!"
-                else:
-                    text = "AI Wins!" if game_mode == "PVC" else "Player 2 Wins!"
+                text = f"{p_name} Wins!" if winner == game.p_h else f"{o_name} Wins!"
                 glow = FONT_TITLE.render(text, True, GOLD_DIM)
                 msg  = FONT_TITLE.render(text, True, GOLD)
                 WIN.blit(glow, (CX - glow.get_width() // 2 + 1, 386))
                 WIN.blit(msg,  (CX - msg.get_width()  // 2,     385))
                 pygame.display.update()
-                pygame.time.delay(2500)
+                await asyncio.sleep(2.5)
                 phase = "MODE"
                 game_mode = None
                 difficulty = None

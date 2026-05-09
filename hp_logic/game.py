@@ -9,10 +9,12 @@ from .board import Board
 
 
 class Game:
-    def __init__(self, win, p_h, o_h):
+    def __init__(self, win, p_h, o_h, p_name="", o_name=""):
         self.win = win
         self.p_h = p_h
         self.o_h = o_h
+        self.p_name = p_name or "Player"
+        self.o_name = o_name or "Opponent"
         self._snd_move = self._load_sound("assets/wand_flick.wav")
         self._snd_capture = self._load_sound("assets/expelliarmus.wav")
         try:
@@ -106,10 +108,11 @@ class Game:
         return False
 
     def draw_captured_sidebar(self):
-        def draw_side(house, captured, x_off):
+        def draw_side(house, captured, x_off, player_name):
             txt_color = BLACK if house == HUFFLEPUFF_YELLOW else WHITE
             pygame.draw.rect(self.win, house, (x_off, 0, SIDEBAR_WIDTH, 38))
-            name_surf = self._font_name.render(HOUSE_NAMES.get(house, ""), True, txt_color)
+            display = player_name[:12] if player_name else HOUSE_NAMES.get(house, "")
+            name_surf = self._font_name.render(display, True, txt_color)
             self.win.blit(name_surf, (x_off + SIDEBAR_WIDTH // 2 - name_surf.get_width() // 2, 8))
 
             img = COLOR_IMAGE.get(house)
@@ -128,8 +131,8 @@ class Game:
                 if small:
                     self.win.blit(small, (cx - 13, cy - 13))
 
-        draw_side(self.p_h, self.captured_by_p, 0)
-        draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH)
+        draw_side(self.p_h, self.captured_by_p, 0, self.p_name)
+        draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH, self.o_name)
 
     def draw_valid_moves(self, moves):
         for move in moves:
