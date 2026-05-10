@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import os
 import pygame
 from .constants import (
@@ -9,12 +10,14 @@ from .board import Board
 
 
 class Game:
-    def __init__(self, win, p_h, o_h, p_name="", o_name=""):
+    def __init__(self, win, p_h, o_h, p_name="", o_name="", p_wins=0, o_wins=0):
         self.win = win
         self.p_h = p_h
         self.o_h = o_h
         self.p_name = p_name or "Player"
         self.o_name = o_name or "Opponent"
+        self.p_wins = p_wins
+        self.o_wins = o_wins
         self._snd_move = self._load_sound("assets/wand_flick.wav")
         self._snd_capture = self._load_sound("assets/expelliarmus.wav")
         try:
@@ -39,6 +42,19 @@ class Game:
                 return None
         return None
 
+    def _snapshot(self):
+        return (copy.deepcopy(self.board), self.captured_by_p[:], self.captured_by_o[:])
+
+    def undo(self):
+        if not self._history:
+            return False
+        self.board, self.captured_by_p, self.captured_by_o = self._history.pop()
+        self.selected = None
+        self.valid_moves = {}
+        self.turn = self.p_h
+        self._turn_saved = False
+        return True
+
     def _init(self):
         self.selected = None
         self.board = Board(self.p_h, self.o_h)
@@ -49,6 +65,8 @@ class Game:
         self.last_move = None
         self.muted = False
         self._king_flash = None
+        self._history = []
+        self._turn_saved = False
 
     def update(self, ai_thinking=False):
         self.win.fill(BLACK)
@@ -78,6 +96,9 @@ class Game:
         piece = self.board.get_piece(row, col)
 
         if self.selected and piece == 0 and (row, col) in self.valid_moves:
+            if not self._turn_saved:
+                self._history = [self._snapshot()]
+                self._turn_saved = True
             was_king = self.selected.king
             await self._animate_piece(self.selected, row, col)
             self.board.move(self.selected, row, col)
@@ -117,7 +138,7 @@ class Game:
         return False
 
     def draw_captured_sidebar(self, ai_thinking=False):
-        def draw_side(house, captured, x_off, player_name, is_active, thinking):
+        def draw_side(house, captured, x_off, player_name, is_active, thinking, wins):
             txt_color = BLACK if house == HUFFLEPUFF_YELLOW else WHITE
             pygame.draw.rect(self.win, house, (x_off, 0, SIDEBAR_WIDTH, 38))
             display = player_name[:12] if player_name else HOUSE_NAMES.get(house, "")
@@ -135,6 +156,8 @@ class Game:
             left_surf  = self._font_score.render(f"Left:  {12 - len(captured)}", True, WHITE)
             self.win.blit(taken_surf, (x_off + SIDEBAR_WIDTH // 2 - taken_surf.get_width() // 2, 102))
             self.win.blit(left_surf,  (x_off + SIDEBAR_WIDTH // 2 - left_surf.get_width()  // 2, 120))
+            wins_surf = self._font_score.render(f"Wins: {wins}", True, (200, 168, 75))
+            self.win.blit(wins_surf, (x_off + SIDEBAR_WIDTH // 2 - wins_surf.get_width() // 2, 580))
 
             for i, color in enumerate(captured):
                 r, c = i // 2, i % 2
@@ -154,8 +177,8 @@ class Game:
             if ind:
                 self.win.blit(ind, (x_off + SIDEBAR_WIDTH // 2 - ind.get_width() // 2, 560))
 
-        draw_side(self.p_h, self.captured_by_p, 0,                        self.p_name, self.turn == self.p_h, False)
-        draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH, self.o_name, self.turn == self.o_h, ai_thinking)
+        draw_side(self.p_h, self.captured_by_p, 0,                          self.p_name, self.turn == self.p_h, False,       self.p_wins)
+        draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH, self.o_name, self.turn == self.o_h, ai_thinking, self.o_wins)
 
     def draw_movable_pieces(self):
         if self.selected:
@@ -200,6 +223,7 @@ class Game:
     def change_turn(self):
         self.valid_moves = {}
         self.turn = self.o_h if self.turn == self.p_h else self.p_h
+        self._turn_saved = False
 
     async def select(self, row, col):
         if self.selected:
@@ -225,6 +249,7 @@ class Game:
     async def ai_move(self, board):
         moved_from = None
         moved_to = None
+        captures = 0
         for row in range(ROWS):
             for col in range(COLS):
                 old = self.board.board[row][col]
@@ -235,6 +260,7 @@ class Game:
                     moved_to = (row, col)
                 elif old != 0 and new == 0 and old.color == self.p_h:
                     self.captured_by_o.append(old.color)
+                    captures += 1
 
         if moved_from and moved_to:
             piece = self.board.board[moved_from[0]][moved_from[1]]
@@ -244,4 +270,10 @@ class Game:
         self.board = board
         if moved_to:
             self.last_move = moved_to
+        if captures > 0:
+            if self._snd_capture and not self.muted:
+                self._snd_capture.play()
+        else:
+            if self._snd_move and not self.muted:
+                self._snd_move.play()
         self.change_turn()

@@ -3,7 +3,7 @@ import random
 import sys
 import pygame
 from hp_logic.constants import (
-    WIDTH, HEIGHT, SQUARE_SIZE, SIDEBAR_WIDTH, BLACK, WHITE,
+    WIDTH, HEIGHT, SQUARE_SIZE, SIDEBAR_WIDTH, BOARD_WIDTH, BLACK, WHITE,
     GRYFFINDOR_RED, SLYTHERIN_GREEN, HUFFLEPUFF_YELLOW, RAVENCLAW_BLUE,
     COLOR_IMAGE,
 )
@@ -41,6 +41,7 @@ BACK_RECT    = (20, 110, 120, 40)
 QUIT_RECT    = (10, 380, 180, 36)
 RESTART_RECT = (10, 426, 180, 36)
 MUTE_RECT    = (10, 472, 180, 36)
+UNDO_RECT    = (10, 518, 180, 36)
 
 
 def draw_bg(surface):
@@ -131,6 +132,24 @@ def _ni_read():
         return None, False
 
 
+def _record_win(is_player):
+    try:
+        import platform
+        platform.window.pyIncrWins('p' if is_player else 'o')
+    except Exception:
+        pass
+
+
+def _load_wins():
+    try:
+        import platform
+        p = int(platform.window._hp_p_wins or 0)
+        o = int(platform.window._hp_o_wins or 0)
+        return p, o
+    except Exception:
+        return 0, 0
+
+
 async def main():
     run = True
     clock = pygame.time.Clock()
@@ -148,6 +167,7 @@ async def main():
     timer_enabled  = False
     muted          = False
     game_start_time = 0
+    p_wins, o_wins  = _load_wins()
 
     while run:
         clock.tick(60)
@@ -168,12 +188,12 @@ async def main():
                         else:
                             o_name = "AI"
                             _ni_hide()
-                            game = Game(WIN, p_house, o_house, p_name, o_name)
+                            game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                             phase = "PLAY"
                     else:
                         o_name = confirmed
                         _ni_hide()
-                        game = Game(WIN, p_house, o_house, p_name, o_name)
+                        game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                         phase = "PLAY"
 
             if event.type == pygame.TEXTINPUT and phase == "NAME" and not _IS_WEB:
@@ -265,12 +285,12 @@ async def main():
                             else:
                                 o_name = "AI"
                                 _ni_hide()
-                                game = Game(WIN, p_house, o_house, p_name, o_name)
+                                game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                                 phase = "PLAY"
                         else:
                             o_name = confirmed
                             _ni_hide()
-                            game = Game(WIN, p_house, o_house, p_name, o_name)
+                            game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                             phase = "PLAY"
 
                 elif phase == "HOUSE2":
@@ -300,15 +320,19 @@ async def main():
                         game = None
                         phase = "MODE"
                     elif rx <= mx <= rx + rw and ry <= my <= ry + rh:
-                        game = Game(WIN, p_house, o_house, p_name, o_name)
+                        game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                         game_start_time = 0
                     elif ux <= mx <= ux + uw and uy <= my <= uy + uh:
                         muted = not muted
                     else:
-                        col = (mx - SIDEBAR_WIDTH) // SQUARE_SIZE
-                        row = my // SQUARE_SIZE
-                        if 0 <= row < 8 and 0 <= col < 8:
-                            await game.select(row, col)
+                        undx, undy, undw, undh = UNDO_RECT
+                        if game_mode == "PVC" and undx <= mx <= undx + undw and undy <= my <= undy + undh:
+                            game.undo()
+                        else:
+                            col = (mx - SIDEBAR_WIDTH) // SQUARE_SIZE
+                            row = my // SQUARE_SIZE
+                            if 0 <= row < 8 and 0 <= col < 8:
+                                await game.select(row, col)
 
         if phase == "MODE":
             draw_bg(WIN)
@@ -404,12 +428,12 @@ async def main():
                         else:
                             o_name = "AI"
                             _ni_hide()
-                            game = Game(WIN, p_house, o_house, p_name, o_name)
+                            game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                             phase = "PLAY"
                     else:
                         o_name = confirmed
                         _ni_hide()
-                        game = Game(WIN, p_house, o_house, p_name, o_name)
+                        game = Game(WIN, p_house, o_house, p_name, o_name, p_wins, o_wins)
                         phase = "PLAY"
 
         elif phase == "PLAY" and game is not None:
@@ -424,6 +448,10 @@ async def main():
                 draw_button(WIN, "Restart", *RESTART_RECT)
                 mute_bg = (50, 5, 5) if muted else BTN_BG
                 draw_button(WIN, "Mute: ON" if muted else "Sound: ON", *MUTE_RECT, bg=mute_bg)
+                draw_button(WIN, "Undo", *UNDO_RECT)
+                _diff_names = {1: "Easy", 3: "Medium", 4: "Hard"}
+                _d = FONT_SUB.render(_diff_names.get(difficulty, ""), True, (160, 128, 52))
+                WIN.blit(_d, (BOARD_WIDTH + SIDEBAR_WIDTH + SIDEBAR_WIDTH // 2 - _d.get_width() // 2, 610))
                 pygame.display.update()
                 await asyncio.sleep(0.25)
                 result = minimax(game.board, difficulty, True)
@@ -437,6 +465,11 @@ async def main():
             draw_button(WIN, "Restart", *RESTART_RECT)
             mute_bg = (50, 5, 5) if muted else BTN_BG
             draw_button(WIN, "Mute: ON" if muted else "Sound: ON", *MUTE_RECT, bg=mute_bg)
+            if game_mode == "PVC":
+                draw_button(WIN, "Undo", *UNDO_RECT)
+                _diff_names = {1: "Easy", 3: "Medium", 4: "Hard"}
+                _d = FONT_SUB.render(_diff_names.get(difficulty, ""), True, (160, 128, 52))
+                WIN.blit(_d, (BOARD_WIDTH + SIDEBAR_WIDTH + SIDEBAR_WIDTH // 2 - _d.get_width() // 2, 610))
 
             if timer_enabled:
                 elapsed = (pygame.time.get_ticks() - game_start_time) // 1000
@@ -445,20 +478,32 @@ async def main():
 
             winner = game.board.winner()
             if winner is not None:
+                if winner == game.p_h:
+                    p_wins += 1
+                    _record_win(True)
+                else:
+                    o_wins += 1
+                    _record_win(False)
                 overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
                 overlay.fill((0, 0, 0, 170))
                 WIN.blit(overlay, (0, 0))
-                pygame.draw.rect(WIN, DARK, (335, 325, 530, 150))
-                pygame.draw.rect(WIN, GOLD, (335, 325, 530, 150), 2)
-                for cx2, cy2, dx, dy in [(335, 325, 1, 1), (865, 325, -1, 1),
-                                          (335, 475, 1, -1), (865, 475, -1, -1)]:
+                pygame.draw.rect(WIN, DARK, (335, 310, 530, 215))
+                pygame.draw.rect(WIN, GOLD, (335, 310, 530, 215), 2)
+                for cx2, cy2, dx, dy in [(335, 310, 1, 1), (865, 310, -1, 1),
+                                          (335, 525, 1, -1), (865, 525, -1, -1)]:
                     pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2 + dx * 18, cy2), 3)
                     pygame.draw.line(WIN, GOLD, (cx2, cy2), (cx2, cy2 + dy * 18), 3)
                 text = f"{p_name} Wins!" if winner == game.p_h else f"{o_name} Wins!"
                 glow = FONT_TITLE.render(text, True, GOLD_DIM)
                 msg  = FONT_TITLE.render(text, True, GOLD)
-                WIN.blit(glow, (CX - glow.get_width() // 2 + 1, 386))
-                WIN.blit(msg,  (CX - msg.get_width()  // 2,     385))
+                WIN.blit(glow, (CX - glow.get_width() // 2 + 1, 356))
+                WIN.blit(msg,  (CX - msg.get_width()  // 2,     355))
+                if timer_enabled:
+                    _elapsed = (pygame.time.get_ticks() - game_start_time) // 1000
+                    _ts = FONT_SUB.render(f"Time: {_elapsed // 60:02d}:{_elapsed % 60:02d}", True, GOLD)
+                    WIN.blit(_ts, (CX - _ts.get_width() // 2, 422))
+                _ws = FONT_SUB.render(f"{p_name}: {p_wins}  •  {o_name}: {o_wins}", True, GOLD)
+                WIN.blit(_ws, (CX - _ws.get_width() // 2, 455 if timer_enabled else 432))
                 pygame.display.update()
                 await asyncio.sleep(4.0)
                 show_home_screen()

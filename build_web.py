@@ -221,6 +221,15 @@ OBSERVER_JS = """\
         var overlay = document.getElementById('loading-overlay');
         var infobox = document.getElementById('infobox');
 
+        window._hp_p_wins = parseInt(localStorage.getItem('hp_checkers_p_wins') || '0');
+        window._hp_o_wins = parseInt(localStorage.getItem('hp_checkers_o_wins') || '0');
+        window.pyIncrWins = function(key) {
+            var k = 'hp_checkers_' + key + '_wins';
+            var n = parseInt(localStorage.getItem(k) || '0') + 1;
+            localStorage.setItem(k, n);
+            if (key === 'p') window._hp_p_wins = n; else window._hp_o_wins = n;
+        };
+
         for (var i = 0; i < 180; i++) {
             var s = document.createElement('div');
             s.className = 'lo-star';
