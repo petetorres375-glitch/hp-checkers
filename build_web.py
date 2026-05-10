@@ -149,6 +149,39 @@ CUSTOM_CSS = """\
             font-size: 0.68em;
             color: #3a3a5a;
             letter-spacing: 2px;
+        }
+
+        .lo-start-btn {
+            display: none;
+            margin-top: 8px;
+            padding: 16px 52px;
+            font-family: 'Cinzel', Georgia, serif;
+            font-size: 1em;
+            font-weight: 700;
+            color: #050510;
+            background: #c8a84b;
+            border: none;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            outline: none;
+        }
+        .lo-start-btn:hover { background: #e0c060; }
+
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        canvas.emscripten {
+            touch-action: none;
+            width: min(100vw, 150vh) !important;
+            height: auto !important;
+            display: block;
         }"""
 
 LOADING_HTML = """\
@@ -175,8 +208,9 @@ LOADING_HTML = """\
                     <div class="lo-house-name lo-rave-name">Ravenclaw</div>
                 </div>
             </div>
-            <div class="lo-spinner"></div>
-            <div class="lo-note">First visit may take up to 30 seconds</div>
+            <div class="lo-spinner" id="lo-spinner"></div>
+            <div class="lo-note" id="lo-note">First visit may take up to 30 seconds</div>
+            <button class="lo-start-btn" id="lo-start-btn">Start Game</button>
         </div>
     </div>
 
@@ -203,7 +237,17 @@ OBSERVER_JS = """\
             new MutationObserver(function (mutations) {
                 mutations.forEach(function (m) {
                     if (m.attributeName === 'style' && infobox.style.display === 'none') {
-                        overlay.style.display = 'none';
+                        var spinner = document.getElementById('lo-spinner');
+                        var note    = document.getElementById('lo-note');
+                        var btn     = document.getElementById('lo-start-btn');
+                        if (spinner) spinner.style.display = 'none';
+                        if (note)    note.style.display    = 'none';
+                        if (btn) {
+                            btn.style.display = 'block';
+                            btn.addEventListener('click', function () {
+                                overlay.style.display = 'none';
+                            });
+                        }
                     }
                 });
             }).observe(infobox, { attributes: true });
