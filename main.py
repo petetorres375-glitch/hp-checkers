@@ -82,6 +82,23 @@ def draw_label(surface, text, y):
     surface.blit(surf, (CX - surf.get_width() // 2, y))
 
 
+def show_home_screen():
+    try:
+        import platform
+        platform.window.eval(
+            "var o=document.getElementById('loading-overlay'),"
+            "b=document.getElementById('lo-start-btn'),"
+            "s=document.getElementById('lo-spinner'),"
+            "n=document.getElementById('lo-note');"
+            "if(o)o.style.display='flex';"
+            "if(b)b.style.display='block';"
+            "if(s)s.style.display='none';"
+            "if(n)n.style.display='none';"
+        )
+    except Exception:
+        pass
+
+
 async def main():
     run = True
     clock = pygame.time.Clock()
@@ -145,8 +162,9 @@ async def main():
 
                 elif phase == "DIFFICULTY":
                     if bx0 <= mx <= bx0 + bw0 and by0 <= my <= by0 + bh0:
-                        phase = "MODE"
+                        show_home_screen()
                         game_mode = None
+                        phase = "MODE"
                     elif BX <= mx <= BX + BW:
                         if 250 <= my <= 250 + BH:
                             difficulty = 1
@@ -160,7 +178,12 @@ async def main():
 
                 elif phase == "HOUSE":
                     if bx0 <= mx <= bx0 + bw0 and by0 <= my <= by0 + bh0:
-                        phase = "DIFFICULTY" if game_mode == "PVC" else "MODE"
+                        if game_mode == "PVC":
+                            phase = "DIFFICULTY"
+                        else:
+                            show_home_screen()
+                            game_mode = None
+                            phase = "MODE"
                     elif BX <= mx <= BX + BW:
                         p_h = None
                         if 185 <= my <= 185 + BH:
@@ -230,10 +253,11 @@ async def main():
                     qx, qy, qw, qh = QUIT_RECT
                     rx, ry, rw, rh = RESTART_RECT
                     if qx <= mx <= qx + qw and qy <= my <= qy + qh:
-                        phase = "MODE"
+                        show_home_screen()
                         game_mode = None
                         difficulty = None
                         game = None
+                        phase = "MODE"
                     elif rx <= mx <= rx + rw and ry <= my <= ry + rh:
                         game = Game(WIN, p_house, o_house, p_name, o_name)
                     else:
@@ -355,10 +379,11 @@ async def main():
                 WIN.blit(msg,  (CX - msg.get_width()  // 2,     385))
                 pygame.display.update()
                 await asyncio.sleep(2.5)
-                phase = "MODE"
+                show_home_screen()
                 game_mode = None
                 difficulty = None
                 game = None
+                phase = "MODE"
 
         pygame.display.update()
         await asyncio.sleep(0)
