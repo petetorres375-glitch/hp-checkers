@@ -256,7 +256,8 @@ async def main():
                 draw_label(WIN, "Player 2 — Enter Your Name", 200)
             else:
                 draw_label(WIN, "Enter Your Name", 200)
-            pygame.draw.rect(WIN, BTN_BG, (BX, 290, BW, BH))
+            box_bg = WHITE if name_input else BTN_BG
+            pygame.draw.rect(WIN, box_bg, (BX, 290, BW, BH))
             pygame.draw.rect(WIN, GOLD, (BX, 290, BW, BH), 2)
             for cx2, cy2, dx, dy in [(BX, 290, 1, 1), (BX+BW, 290, -1, 1),
                                       (BX, 290+BH, 1, -1), (BX+BW, 290+BH, -1, -1)]:
@@ -265,10 +266,10 @@ async def main():
             cursor = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
             if name_input:
                 display_text = name_input + cursor
-                text_color   = WHITE
+                text_color   = BLACK
             else:
-                display_text = "Type your name..." if cursor else ""
-                text_color   = (100, 100, 110)
+                display_text = "Type your name..."
+                text_color   = WHITE
             name_surf = FONT_BTN.render(display_text, True, text_color)
             WIN.blit(name_surf, (BX + BW // 2 - name_surf.get_width() // 2,
                                   290 + BH // 2 - name_surf.get_height() // 2))
