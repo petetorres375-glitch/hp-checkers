@@ -181,7 +181,14 @@ CUSTOM_CSS = """\
             touch-action: none;
             width: min(100vw, 150vh) !important;
             height: auto !important;
-            display: block;
+            aspect-ratio: 3 / 2 !important;
+            display: block !important;
+            position: relative !important;
+            top: auto !important;
+            bottom: auto !important;
+            left: auto !important;
+            right: auto !important;
+            margin: 0 auto !important;
         }"""
 
 LOADING_HTML = """\
@@ -221,14 +228,21 @@ OBSERVER_JS = """\
         var overlay = document.getElementById('loading-overlay');
         var infobox = document.getElementById('infobox');
 
-        window._hp_p_wins = parseInt(localStorage.getItem('hp_checkers_p_wins') || '0');
-        window._hp_o_wins = parseInt(localStorage.getItem('hp_checkers_o_wins') || '0');
-        window.pyIncrWins = function(key) {
-            var k = 'hp_checkers_' + key + '_wins';
-            var n = parseInt(localStorage.getItem(k) || '0') + 1;
-            localStorage.setItem(k, n);
-            if (key === 'p') window._hp_p_wins = n; else window._hp_o_wins = n;
-        };
+        try {
+            window._hp_p_wins = parseInt(localStorage.getItem('hp_checkers_p_wins') || '0');
+            window._hp_o_wins = parseInt(localStorage.getItem('hp_checkers_o_wins') || '0');
+            window.pyIncrWins = function(key) {
+                try {
+                    var k = 'hp_checkers_' + key + '_wins';
+                    var n = parseInt(localStorage.getItem(k) || '0') + 1;
+                    localStorage.setItem(k, n);
+                    if (key === 'p') window._hp_p_wins = n; else window._hp_o_wins = n;
+                } catch(e) {}
+            };
+        } catch(e) {
+            window._hp_p_wins = 0; window._hp_o_wins = 0;
+            window.pyIncrWins = function() {};
+        }
 
         for (var i = 0; i < 180; i++) {
             var s = document.createElement('div');
