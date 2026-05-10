@@ -182,13 +182,7 @@ CUSTOM_CSS = """\
             width: min(100vw, 150vh) !important;
             height: auto !important;
             aspect-ratio: 3 / 2 !important;
-            display: block !important;
-            position: relative !important;
-            top: auto !important;
-            bottom: auto !important;
-            left: auto !important;
-            right: auto !important;
-            margin: 0 auto !important;
+            display: block;
         }"""
 
 LOADING_HTML = """\
