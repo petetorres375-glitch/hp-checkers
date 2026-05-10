@@ -111,14 +111,18 @@ async def main():
                             naming_step = 2
                         else:
                             o_name = "AI"
+                            pygame.key.stop_text_input()
                             game = Game(WIN, p_house, o_house, p_name, o_name)
                             phase = "PLAY"
                     else:
                         o_name = confirmed
+                        pygame.key.stop_text_input()
                         game = Game(WIN, p_house, o_house, p_name, o_name)
                         phase = "PLAY"
-                elif event.unicode and len(name_input) < 14:
-                    name_input += event.unicode
+
+            if event.type == pygame.TEXTINPUT and phase == "NAME":
+                if len(name_input) < 14:
+                    name_input += event.text
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
@@ -168,6 +172,7 @@ async def main():
                             o_house = SLYTHERIN_GREEN if p_h != SLYTHERIN_GREEN else GRYFFINDOR_RED
                             name_input = ""
                             naming_step = 1
+                            pygame.key.start_text_input()
                             phase = "NAME"
 
                 elif phase == "NAME":
@@ -176,8 +181,11 @@ async def main():
                             naming_step = 1
                             name_input = p_name
                         else:
+                            pygame.key.stop_text_input()
                             phase = "HOUSE"
                             name_input = ""
+                    elif BX <= mx <= BX + BW and 290 <= my <= 290 + BH:
+                        pygame.key.start_text_input()
                     elif BX <= mx <= BX + BW and 400 <= my <= 400 + BH:
                         confirmed = name_input.strip() or ("Player 1" if naming_step == 1 else "Player 2")
                         if naming_step == 1:
@@ -187,10 +195,12 @@ async def main():
                                 naming_step = 2
                             else:
                                 o_name = "AI"
+                                pygame.key.stop_text_input()
                                 game = Game(WIN, p_house, o_house, p_name, o_name)
                                 phase = "PLAY"
                         else:
                             o_name = confirmed
+                            pygame.key.stop_text_input()
                             game = Game(WIN, p_house, o_house, p_name, o_name)
                             phase = "PLAY"
 
@@ -255,10 +265,10 @@ async def main():
             cursor = "|" if (pygame.time.get_ticks() // 500) % 2 == 0 else ""
             if name_input:
                 display_text = name_input + cursor
-                text_color   = GOLD
+                text_color   = WHITE
             else:
                 display_text = "Type your name..." if cursor else ""
-                text_color   = (80, 64, 28)
+                text_color   = (100, 100, 110)
             name_surf = FONT_BTN.render(display_text, True, text_color)
             WIN.blit(name_surf, (BX + BW // 2 - name_surf.get_width() // 2,
                                   290 + BH // 2 - name_surf.get_height() // 2))
