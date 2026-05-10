@@ -612,6 +612,34 @@ frameborder="1"
             overlay.appendChild(s);
         }
 
+        // Hidden input for mobile keyboard — focused from touchstart so the OS keyboard appears
+        (function () {
+            var ni = document.createElement('input');
+            ni.type = 'text'; ni.id = 'py-name-inp'; ni.maxLength = 14;
+            ni.setAttribute('autocomplete','off'); ni.setAttribute('autocorrect','off');
+            ni.setAttribute('autocapitalize','off'); ni.setAttribute('spellcheck','false');
+            ni.style.cssText = 'position:fixed;left:-999px;top:50%;width:2px;height:2px;opacity:0.01;border:none;outline:none;';
+            document.body.appendChild(ni);
+            window._pyNiVal = ''; window._pyNiEnter = false; window._pyNiPhase = false;
+            ni.addEventListener('input',   function ()  { window._pyNiVal = ni.value.slice(0, 14); });
+            ni.addEventListener('keydown', function (e) { if (e.key === 'Enter') window._pyNiEnter = true; });
+            window.pyNiShow = function (v) {
+                ni.value = v || ''; window._pyNiVal = v || ''; window._pyNiEnter = false;
+                window._pyNiPhase = true; ni.removeAttribute('disabled'); ni.focus();
+            };
+            window.pyNiHide = function () {
+                window._pyNiPhase = false; ni.setAttribute('disabled', ''); ni.blur();
+            };
+            window.pyNiClearEnter = function () { window._pyNiEnter = false; };
+            // Re-focus on canvas tap so the keyboard re-appears if dismissed
+            setTimeout(function () {
+                var cvs = document.querySelector('canvas.emscripten');
+                if (cvs) cvs.addEventListener('touchstart', function () {
+                    if (window._pyNiPhase) { ni.value = window._pyNiVal || ''; ni.focus(); }
+                }, { passive: true });
+            }, 2000);
+        })();
+
         if (overlay && infobox) {
             new MutationObserver(function (mutations) {
                 mutations.forEach(function (m) {

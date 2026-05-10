@@ -1,5 +1,6 @@
 import asyncio
 import random
+import sys
 import pygame
 from hp_logic.constants import (
     WIDTH, HEIGHT, SQUARE_SIZE, SIDEBAR_WIDTH, BLACK, WHITE,
@@ -11,6 +12,7 @@ from ai.minimax import minimax
 
 pygame.init()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+_IS_WEB = sys.platform == "emscripten"
 pygame.display.set_caption("Harry Potter House Cup Checkers")
 
 GOLD     = (200, 168, 75)
@@ -99,6 +101,35 @@ def show_home_screen():
         pass
 
 
+def _ni_show(val=""):
+    try:
+        import platform
+        platform.window.pyNiShow(val)
+    except Exception:
+        pygame.key.start_text_input()
+
+
+def _ni_hide():
+    try:
+        import platform
+        platform.window.pyNiHide()
+    except Exception:
+        pygame.key.stop_text_input()
+
+
+def _ni_read():
+    try:
+        import platform
+        raw = platform.window._pyNiVal
+        val = str(raw)[:14] if raw else ""
+        enter = bool(platform.window._pyNiEnter)
+        if enter:
+            platform.window.pyNiClearEnter()
+        return val, enter
+    except Exception:
+        return None, False
+
+
 async def main():
     run = True
     clock = pygame.time.Clock()
@@ -120,7 +151,7 @@ async def main():
             if event.type == pygame.QUIT:
                 run = False
 
-            if event.type == pygame.KEYDOWN and phase == "NAME":
+            if event.type == pygame.KEYDOWN and phase == "NAME" and not _IS_WEB:
                 if event.key == pygame.K_BACKSPACE:
                     name_input = name_input[:-1]
                 elif event.key == pygame.K_RETURN:
@@ -132,16 +163,16 @@ async def main():
                             naming_step = 2
                         else:
                             o_name = "AI"
-                            pygame.key.stop_text_input()
+                            _ni_hide()
                             game = Game(WIN, p_house, o_house, p_name, o_name)
                             phase = "PLAY"
                     else:
                         o_name = confirmed
-                        pygame.key.stop_text_input()
+                        _ni_hide()
                         game = Game(WIN, p_house, o_house, p_name, o_name)
                         phase = "PLAY"
 
-            if event.type == pygame.TEXTINPUT and phase == "NAME":
+            if event.type == pygame.TEXTINPUT and phase == "NAME" and not _IS_WEB:
                 if len(name_input) < 14:
                     name_input += event.text
 
@@ -202,7 +233,7 @@ async def main():
                                 o_house = SLYTHERIN_GREEN if p_h != SLYTHERIN_GREEN else GRYFFINDOR_RED
                                 name_input = ""
                                 naming_step = 1
-                                pygame.key.start_text_input()
+                                _ni_show("")
                                 phase = "NAME"
 
                 elif phase == "NAME":
@@ -210,12 +241,13 @@ async def main():
                         if naming_step == 2:
                             naming_step = 1
                             name_input = p_name
+                            _ni_show(p_name)
                         else:
-                            pygame.key.stop_text_input()
+                            _ni_hide()
                             phase = "HOUSE"
                             name_input = ""
                     elif BX <= mx <= BX + BW and 290 <= my <= 290 + BH:
-                        pygame.key.start_text_input()
+                        _ni_show(name_input)
                     elif BX <= mx <= BX + BW and 400 <= my <= 400 + BH:
                         confirmed = name_input.strip() or ("Player 1" if naming_step == 1 else "Player 2")
                         if naming_step == 1:
@@ -223,14 +255,15 @@ async def main():
                             if game_mode == "PVP":
                                 name_input = ""
                                 naming_step = 2
+                                _ni_show("")
                             else:
                                 o_name = "AI"
-                                pygame.key.stop_text_input()
+                                _ni_hide()
                                 game = Game(WIN, p_house, o_house, p_name, o_name)
                                 phase = "PLAY"
                         else:
                             o_name = confirmed
-                            pygame.key.stop_text_input()
+                            _ni_hide()
                             game = Game(WIN, p_house, o_house, p_name, o_name)
                             phase = "PLAY"
 
@@ -245,7 +278,7 @@ async def main():
                                 o_house = color
                                 name_input = ""
                                 naming_step = 1
-                                pygame.key.start_text_input()
+                                _ni_show("")
                                 phase = "NAME"
                                 break
 
@@ -342,6 +375,29 @@ async def main():
             btn_label = "Next" if game_mode == "PVP" and naming_step == 1 else "Play"
             draw_button(WIN, btn_label, BX, 400, BW, BH)
             draw_button(WIN, "Back", *BACK_RECT)
+
+            if _IS_WEB:
+                web_val, web_enter = _ni_read()
+                if web_val is not None:
+                    name_input = web_val
+                if web_enter and phase == "NAME":
+                    confirmed = name_input.strip() or ("Player 1" if naming_step == 1 else "Player 2")
+                    if naming_step == 1:
+                        p_name = confirmed
+                        if game_mode == "PVP":
+                            name_input = ""
+                            naming_step = 2
+                            _ni_show("")
+                        else:
+                            o_name = "AI"
+                            _ni_hide()
+                            game = Game(WIN, p_house, o_house, p_name, o_name)
+                            phase = "PLAY"
+                    else:
+                        o_name = confirmed
+                        _ni_hide()
+                        game = Game(WIN, p_house, o_house, p_name, o_name)
+                        phase = "PLAY"
 
         elif phase == "PLAY" and game is not None:
             ai_thinking = game_mode == "PVC" and game.turn == game.o_h
