@@ -25,13 +25,17 @@ class Board:
                 else:
                     self.board[row].append(0)
 
-    def draw(self, win):
+    def draw(self, win, highlight=None):
         for row in range(ROWS):
             for col in range(COLS):
                 x = col * SQUARE_SIZE + SIDEBAR_WIDTH
                 y = row * SQUARE_SIZE
                 color = (60, 0, 0) if (row + col) % 2 == 1 else (30, 30, 30)
                 pygame.draw.rect(win, color, (x, y, SQUARE_SIZE, SQUARE_SIZE))
+                if highlight == (row, col):
+                    hl = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
+                    hl.fill((200, 168, 75, 55))
+                    win.blit(hl, (x, y))
 
         for row in range(ROWS):
             for col in range(COLS):

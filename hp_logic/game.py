@@ -3,7 +3,7 @@ import os
 import pygame
 from .constants import (
     PATRONUS_BLUE, SQUARE_SIZE, SIDEBAR_WIDTH, BOARD_WIDTH, WHITE, BLACK,
-    ROWS, COLS, HOUSE_NAMES, COLOR_IMAGE, HUFFLEPUFF_YELLOW,
+    ROWS, COLS, HEIGHT, HOUSE_NAMES, COLOR_IMAGE, HUFFLEPUFF_YELLOW,
 )
 from .board import Board
 
@@ -46,12 +46,13 @@ class Game:
         self.valid_moves = {}
         self.captured_by_p = []
         self.captured_by_o = []
+        self.last_move = None
 
-    def update(self):
+    def update(self, ai_thinking=False):
         self.win.fill(BLACK)
-        self.board.draw(self.win)
+        self.board.draw(self.win, self.last_move)
         self.draw_valid_moves(self.valid_moves)
-        self.draw_captured_sidebar()
+        self.draw_captured_sidebar(ai_thinking)
         pygame.display.update()
 
     async def _animate_piece(self, piece, end_row, end_col):
@@ -64,7 +65,7 @@ class Game:
             piece.x = int(start_x + (end_x - start_x) * t)
             piece.y = int(start_y + (end_y - start_y) * t)
             self.win.fill(BLACK)
-            self.board.draw(self.win)
+            self.board.draw(self.win, self.last_move)
             self.draw_captured_sidebar()
             pygame.display.update()
             await asyncio.sleep(0.012)
@@ -77,6 +78,8 @@ class Game:
             await self._animate_piece(self.selected, row, col)
             self.board.move(self.selected, row, col)
             skipped = self.valid_moves[(row, col)]
+
+            self.last_move = (row, col)
 
             if skipped:
                 for caught in skipped:
@@ -107,32 +110,46 @@ class Game:
 
         return False
 
-    def draw_captured_sidebar(self):
-        def draw_side(house, captured, x_off, player_name):
+    def draw_captured_sidebar(self, ai_thinking=False):
+        def draw_side(house, captured, x_off, player_name, is_active, thinking):
             txt_color = BLACK if house == HUFFLEPUFF_YELLOW else WHITE
             pygame.draw.rect(self.win, house, (x_off, 0, SIDEBAR_WIDTH, 38))
             display = player_name[:12] if player_name else HOUSE_NAMES.get(house, "")
             name_surf = self._font_name.render(display, True, txt_color)
             self.win.blit(name_surf, (x_off + SIDEBAR_WIDTH // 2 - name_surf.get_width() // 2, 8))
 
+            if is_active:
+                pygame.draw.rect(self.win, (220, 188, 80), (x_off, 0, SIDEBAR_WIDTH, HEIGHT), 2)
+
             img = COLOR_IMAGE.get(house)
             if img:
                 self.win.blit(img, (x_off + SIDEBAR_WIDTH // 2 - 22, 48))
 
-            score_surf = self._font_score.render(f"Taken: {len(captured)}", True, WHITE)
-            self.win.blit(score_surf, (x_off + SIDEBAR_WIDTH // 2 - score_surf.get_width() // 2, 102))
+            taken_surf = self._font_score.render(f"Taken: {len(captured)}", True, WHITE)
+            left_surf  = self._font_score.render(f"Left:  {12 - len(captured)}", True, WHITE)
+            self.win.blit(taken_surf, (x_off + SIDEBAR_WIDTH // 2 - taken_surf.get_width() // 2, 102))
+            self.win.blit(left_surf,  (x_off + SIDEBAR_WIDTH // 2 - left_surf.get_width()  // 2, 120))
 
             for i, color in enumerate(captured):
                 r, c = i // 2, i % 2
                 cx = x_off + 55 + c * 80
-                cy = r * 38 + 132
+                cy = r * 38 + 148
                 pygame.draw.circle(self.win, color, (cx, cy), 16)
                 small = self._sidebar_imgs.get(color)
                 if small:
                     self.win.blit(small, (cx - 13, cy - 13))
 
-        draw_side(self.p_h, self.captured_by_p, 0, self.p_name)
-        draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH, self.o_name)
+            if thinking:
+                ind = self._font_score.render("Thinking...", True, (160, 130, 50))
+            elif is_active:
+                ind = self._font_score.render("Your Turn", True, (220, 188, 80))
+            else:
+                ind = None
+            if ind:
+                self.win.blit(ind, (x_off + SIDEBAR_WIDTH // 2 - ind.get_width() // 2, 490))
+
+        draw_side(self.p_h, self.captured_by_p, 0,                        self.p_name, self.turn == self.p_h, False)
+        draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH, self.o_name, self.turn == self.o_h, ai_thinking)
 
     def draw_valid_moves(self, moves):
         for move in moves:
@@ -192,4 +209,6 @@ class Game:
                 await self._animate_piece(piece, moved_to[0], moved_to[1])
 
         self.board = board
+        if moved_to:
+            self.last_move = moved_to
         self.change_turn()

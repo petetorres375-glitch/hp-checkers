@@ -35,8 +35,9 @@ BW, BH = 370, 68
 CX = WIDTH // 2
 BX = CX - BW // 2
 
-BACK_RECT = (20, 110, 120, 40)
-QUIT_RECT = (10, 380, 180, 36)
+BACK_RECT    = (20, 110, 120, 40)
+QUIT_RECT    = (10, 380, 180, 36)
+RESTART_RECT = (10, 426, 180, 36)
 
 
 def draw_bg(surface):
@@ -59,6 +60,9 @@ def draw_title(surface):
 
 def draw_button(surface, text, x, y, w, h, bg=None, text_color=GOLD, img=None):
     bg = bg or BTN_BG
+    mx, my = pygame.mouse.get_pos()
+    if x <= mx <= x + w and y <= my <= y + h:
+        bg = tuple(min(255, c + 25) for c in bg)
     pygame.draw.rect(surface, bg, (x, y, w, h))
     pygame.draw.rect(surface, GOLD, (x, y, w, h), 2)
     for cx2, cy2, dx, dy in [(x, y, 1, 1), (x+w, y, -1, 1), (x, y+h, 1, -1), (x+w, y+h, -1, -1)]:
@@ -169,11 +173,14 @@ async def main():
                             p_h = RAVENCLAW_BLUE
                         if p_h is not None:
                             p_house = p_h
-                            o_house = SLYTHERIN_GREEN if p_h != SLYTHERIN_GREEN else GRYFFINDOR_RED
-                            name_input = ""
-                            naming_step = 1
-                            pygame.key.start_text_input()
-                            phase = "NAME"
+                            if game_mode == "PVP":
+                                phase = "HOUSE2"
+                            else:
+                                o_house = SLYTHERIN_GREEN if p_h != SLYTHERIN_GREEN else GRYFFINDOR_RED
+                                name_input = ""
+                                naming_step = 1
+                                pygame.key.start_text_input()
+                                phase = "NAME"
 
                 elif phase == "NAME":
                     if bx0 <= mx <= bx0 + bw0 and by0 <= my <= by0 + bh0:
@@ -204,17 +211,34 @@ async def main():
                             game = Game(WIN, p_house, o_house, p_name, o_name)
                             phase = "PLAY"
 
+                elif phase == "HOUSE2":
+                    if bx0 <= mx <= bx0 + bw0 and by0 <= my <= by0 + bh0:
+                        phase = "HOUSE"
+                    elif BX <= mx <= BX + BW:
+                        all_h = [GRYFFINDOR_RED, SLYTHERIN_GREEN, HUFFLEPUFF_YELLOW, RAVENCLAW_BLUE]
+                        avail = [c for c in all_h if c != p_house]
+                        for i, color in enumerate(avail):
+                            if 200 + i * 110 <= my <= 200 + i * 110 + BH:
+                                o_house = color
+                                name_input = ""
+                                naming_step = 1
+                                pygame.key.start_text_input()
+                                phase = "NAME"
+                                break
+
                 elif phase == "PLAY" and game is not None:
                     qx, qy, qw, qh = QUIT_RECT
+                    rx, ry, rw, rh = RESTART_RECT
                     if qx <= mx <= qx + qw and qy <= my <= qy + qh:
                         phase = "MODE"
                         game_mode = None
                         difficulty = None
                         game = None
+                    elif rx <= mx <= rx + rw and ry <= my <= ry + rh:
+                        game = Game(WIN, p_house, o_house, p_name, o_name)
                     else:
-                        mx2, my2 = pygame.mouse.get_pos()
-                        col = (mx2 - SIDEBAR_WIDTH) // SQUARE_SIZE
-                        row = my2 // SQUARE_SIZE
+                        col = (mx - SIDEBAR_WIDTH) // SQUARE_SIZE
+                        row = my // SQUARE_SIZE
                         if 0 <= row < 8 and 0 <= col < 8:
                             await game.select(row, col)
 
@@ -237,7 +261,7 @@ async def main():
         elif phase == "HOUSE":
             draw_bg(WIN)
             draw_title(WIN)
-            draw_label(WIN, "Choose Your House", 140)
+            draw_label(WIN, "Player 1 — Choose Your House" if game_mode == "PVP" else "Choose Your House", 140)
             houses = [
                 ("Gryffindor", GRYFFINDOR_RED,    BLACK, 185),
                 ("Slytherin",  SLYTHERIN_GREEN,   WHITE, 275),
@@ -249,11 +273,29 @@ async def main():
                             bg=color, text_color=txt_c, img=COLOR_IMAGE.get(color))
             draw_button(WIN, "Back", *BACK_RECT)
 
+        elif phase == "HOUSE2":
+            draw_bg(WIN)
+            draw_title(WIN)
+            draw_label(WIN, "Player 2 — Choose Your House", 140)
+            all_houses = [
+                ("Gryffindor", GRYFFINDOR_RED,    BLACK),
+                ("Slytherin",  SLYTHERIN_GREEN,   WHITE),
+                ("Hufflepuff", HUFFLEPUFF_YELLOW, BLACK),
+                ("Ravenclaw",  RAVENCLAW_BLUE,    WHITE),
+            ]
+            avail = [(n, c, t) for n, c, t in all_houses if c != p_house]
+            for i, (name, color, txt_c) in enumerate(avail):
+                draw_button(WIN, name, BX, 200 + i * 110, BW, BH,
+                            bg=color, text_color=txt_c, img=COLOR_IMAGE.get(color))
+            draw_button(WIN, "Back", *BACK_RECT)
+
         elif phase == "NAME":
             draw_bg(WIN)
             draw_title(WIN)
             if game_mode == "PVP" and naming_step == 2:
                 draw_label(WIN, "Player 2 — Enter Your Name", 200)
+            elif game_mode == "PVP":
+                draw_label(WIN, "Player 1 — Enter Your Name", 200)
             else:
                 draw_label(WIN, "Enter Your Name", 200)
             box_bg = WHITE if name_input else BTN_BG
@@ -278,7 +320,12 @@ async def main():
             draw_button(WIN, "Back", *BACK_RECT)
 
         elif phase == "PLAY" and game is not None:
-            if game_mode == "PVC" and game.turn == game.o_h:
+            ai_thinking = game_mode == "PVC" and game.turn == game.o_h
+            if ai_thinking:
+                game.update(ai_thinking=True)
+                draw_button(WIN, "Quit",    *QUIT_RECT)
+                draw_button(WIN, "Restart", *RESTART_RECT)
+                pygame.display.update()
                 await asyncio.sleep(0.25)
                 result = minimax(game.board, difficulty, True)
                 if result is not None:
@@ -286,8 +333,9 @@ async def main():
                     if new_board is not None:
                         await game.ai_move(new_board)
 
-            game.update()
-            draw_button(WIN, "Quit", *QUIT_RECT)
+            game.update(ai_thinking=False)
+            draw_button(WIN, "Quit",    *QUIT_RECT)
+            draw_button(WIN, "Restart", *RESTART_RECT)
 
             winner = game.board.winner()
             if winner is not None:
