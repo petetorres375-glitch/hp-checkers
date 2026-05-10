@@ -47,11 +47,15 @@ class Game:
         self.captured_by_p = []
         self.captured_by_o = []
         self.last_move = None
+        self.muted = False
+        self._king_flash = None
 
     def update(self, ai_thinking=False):
         self.win.fill(BLACK)
         self.board.draw(self.win, self.last_move)
+        self.draw_movable_pieces()
         self.draw_valid_moves(self.valid_moves)
+        self._draw_king_flash()
         self.draw_captured_sidebar(ai_thinking)
         pygame.display.update()
 
@@ -80,6 +84,8 @@ class Game:
             skipped = self.valid_moves[(row, col)]
 
             self.last_move = (row, col)
+            if not was_king and self.selected.king:
+                self._king_flash = (row, col, pygame.time.get_ticks())
 
             if skipped:
                 for caught in skipped:
@@ -89,7 +95,7 @@ class Game:
                         self.captured_by_o.append(caught.color)
 
                 self.board.remove(skipped)
-                if self._snd_capture:
+                if self._snd_capture and not self.muted:
                     self._snd_capture.play()
 
                 if not was_king and self.selected.king:
@@ -102,7 +108,7 @@ class Game:
                     self.valid_moves = further_jumps
                     return True
             else:
-                if self._snd_move:
+                if self._snd_move and not self.muted:
                     self._snd_move.play()
 
             self.change_turn()
@@ -146,10 +152,37 @@ class Game:
             else:
                 ind = None
             if ind:
-                self.win.blit(ind, (x_off + SIDEBAR_WIDTH // 2 - ind.get_width() // 2, 490))
+                self.win.blit(ind, (x_off + SIDEBAR_WIDTH // 2 - ind.get_width() // 2, 560))
 
         draw_side(self.p_h, self.captured_by_p, 0,                        self.p_name, self.turn == self.p_h, False)
         draw_side(self.o_h, self.captured_by_o, BOARD_WIDTH + SIDEBAR_WIDTH, self.o_name, self.turn == self.o_h, ai_thinking)
+
+    def draw_movable_pieces(self):
+        if self.selected:
+            return
+        max_cap = self.board.get_max_capture_count(self.turn)
+        for piece in self.board.get_all_pieces(self.turn):
+            moves = self.board.get_valid_moves(piece)
+            if not moves:
+                continue
+            if max_cap > 0 and not any(len(s) == max_cap for s in moves.values()):
+                continue
+            x = piece.col * SQUARE_SIZE + SIDEBAR_WIDTH
+            y = piece.row * SQUARE_SIZE
+            pygame.draw.rect(self.win, (200, 168, 75), (x + 3, y + 3, SQUARE_SIZE - 6, SQUARE_SIZE - 6), 2)
+
+    def _draw_king_flash(self):
+        if not self._king_flash:
+            return
+        fr, fc, ft = self._king_flash
+        elapsed = pygame.time.get_ticks() - ft
+        if elapsed >= 900:
+            self._king_flash = None
+            return
+        alpha = int(220 * (1 - elapsed / 900))
+        hl = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
+        hl.fill((255, 215, 0, alpha))
+        self.win.blit(hl, (fc * SQUARE_SIZE + SIDEBAR_WIDTH, fr * SQUARE_SIZE))
 
     def draw_valid_moves(self, moves):
         for move in moves:
